@@ -38,16 +38,12 @@ func testDataDir(t *testing.T) string {
 }
 
 func stubMount() {
-	mountFunc = func(a1, a2, a3 string, a4 uintptr, a5 string) error {
-		return nil
-	}
 	unmountFunc = func(a1 string, a2 int) error {
 		return nil
 	}
 }
 
 func restoreMount() {
-	mountFunc = unix.Mount
 	unmountFunc = unix.Unmount
 }
 
@@ -111,6 +107,7 @@ func TestRunInvalidArgs(t *testing.T) {
 				SystemctlCmd:        "/bin/true",
 				RootDir:             tempDir,
 				DockerCredentialGCR: "/bin/true",
+				MountCmd:            "/bin/true",
 			}
 			stateDir := filepath.Join(tempDir, "var", "lib", ".cos-customizer")
 			funcCall := fmt.Sprintf("Run(ctx, %+v, %q, %+v)", deps, stateDir, test.config)
@@ -184,6 +181,7 @@ func TestRunFailure(t *testing.T) {
 				SystemctlCmd:        "/bin/true",
 				RootDir:             tempDir,
 				DockerCredentialGCR: "/bin/true",
+				MountCmd:            "/bin/true",
 			}
 			stateDir := filepath.Join(tempDir, "var", "lib", ".cos-customizer")
 			funcCall := fmt.Sprintf("Run(ctx, %+v, %q, %+v)", deps, stateDir, test.config)
@@ -265,6 +263,7 @@ func TestRunSuccess(t *testing.T) {
 				SystemctlCmd:        "/bin/true",
 				RootDir:             tempDir,
 				DockerCredentialGCR: "/bin/true",
+				MountCmd:            "/bin/true",
 			}
 			stateDir := filepath.Join(tempDir, "var", "lib", ".cos-customizer")
 			funcCall := fmt.Sprintf("Run(ctx, %+v, %q, %+v)", deps, stateDir, test.config)

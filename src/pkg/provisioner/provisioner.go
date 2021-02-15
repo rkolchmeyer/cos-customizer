@@ -27,26 +27,27 @@ import (
 
 	"cloud.google.com/go/storage"
 	"golang.org/x/sys/unix"
+
+	"github.com/GoogleCloudPlatform/cos-customizer/src/pkg/utils"
 )
 
 // I typically do not like this style of mocking, but I think it's the best
-// option in this case. These functions cannot execute at all in a normal test
-// environment because they require root privileges. Even if the address to
-// mount is owned by the caller, these functions will fail. To take them out of
-// the test codepath, we can mock them here.
+// option in this case. This function cannot execute at all in a normal test
+// environment because it requires root privileges. Even if the address to
+// unmount is owned by the caller, this function will fail. To take it out of
+// the test codepath, we can mock it here.
 //
 // I have considered an alternative involving writing a unixPkg interface and
 // passing it through the Deps struct. But it doesn't give us much for its
 // additional verbosity.
-var mountFunc = unix.Mount
 var unmountFunc = unix.Unmount
 
-func setup(rootDir, dockerCredentialGCR string, systemd *systemdClient) error {
+func setup(rootDir, mountCmd string, dockerCredentialGCR string, systemd *systemdClient) error {
 	log.Println("Setting up environment...")
 	if err := systemd.stop("update-engine.service"); err != nil {
 		return err
 	}
-	if err := mountFunc("", filepath.Join(rootDir, "root"), "tmpfs", 0, ""); err != nil {
+	if err := utils.RunCommand([]string{mountCmd, "-t", "tmpfs", "tmpfs", filepath.Join(rootDir, "root")}, "", nil); err != nil {
 		return fmt.Errorf("error mounting tmpfs at /root: %v", err)
 	}
 	cmd := exec.Command(dockerCredentialGCR, "configure-docker")
@@ -151,7 +152,7 @@ func cleanup(rootDir, stateDir string) error {
 	return nil
 }
 
-func executeSteps(s *state, c Config) error {
+func executeSteps(s *state, deps Deps, c Config) error {
 	for i, step := range c.Steps {
 		// In the case where executeSteps runs after a reboot, we need to skip
 		// through all the steps that have already been completed.
@@ -162,7 +163,7 @@ func executeSteps(s *state, c Config) error {
 		if err != nil {
 			return fmt.Errorf("error parsing step %d: %v", i, err)
 		}
-		if err := abstractStep.run(s); err != nil {
+		if err := abstractStep.run(s, deps); err != nil {
 			return fmt.Errorf("error in step %d: %v", i, err)
 		}
 		// Persist our most recent completed step to disk, so we can resume after a reboot.
@@ -184,6 +185,12 @@ type Deps struct {
 	SystemctlCmd string
 	// DockerCredentialGCR is the path to the docker-credential-gcr binary.
 	DockerCredentialGCR string
+	// DockerCmd is the path to the Docker client.
+	DockerCmd string
+	// JournalctlCmd is the path to the journald client.
+	JournalctlCmd string
+	// MountCmd is the path to the mount(8) program.
+	MountCmd string
 	// RootDir is the path to the root file system. Should be "/" in all real
 	// runtime situations.
 	RootDir string
@@ -199,10 +206,10 @@ func Run(ctx context.Context, deps Deps, stateDir string, c Config) (err error) 
 	if err != nil {
 		return err
 	}
-	if err := setup(deps.RootDir, deps.DockerCredentialGCR, systemd); err != nil {
+	if err := setup(deps.RootDir, deps.MountCmd, deps.DockerCredentialGCR, systemd); err != nil {
 		return err
 	}
-	if err := executeSteps(runState, c); err != nil {
+	if err := executeSteps(runState, deps, c); err != nil {
 		return err
 	}
 	if err := stopServices(systemd); err != nil {

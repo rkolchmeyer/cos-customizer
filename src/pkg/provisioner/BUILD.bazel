@@ -4,6 +4,8 @@ go_library(
     name = "go_default_library",
     srcs = [
         "config.go",
+        "docker.go",
+        "install_gpu_step.go",
         "provisioner.go",
         "run_script_step.go",
         "state.go",

@@ -87,6 +87,9 @@ func (r *Run) Execute(ctx context.Context, f *flag.FlagSet, args ...interface{})
 		TarCmd:              "tar",
 		SystemctlCmd:        "systemctl",
 		DockerCredentialGCR: "docker-credential-gcr",
+		DockerCmd:           "docker",
+		JournalctlCmd:       "journalctl",
+		MountCmd:            "mount",
 		RootDir:             "/",
 	}
 	if err := provisioner.Run(ctx, deps, *stateDir, c); err != nil {

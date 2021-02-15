@@ -40,7 +40,7 @@ func (s *runScriptStep) validate() error {
 	return nil
 }
 
-func (s *runScriptStep) run(runState *state) error {
+func (s *runScriptStep) run(runState *state, _ Deps) error {
 	if err := s.validate(); err != nil {
 		return err
 	}
