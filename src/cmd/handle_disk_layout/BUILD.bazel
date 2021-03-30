@@ -26,4 +26,6 @@ go_binary(
     name = "handle_disk_layout_bin",
     embed = [":handle_disk_layout_lib"],
     visibility = ["//visibility:public"],
+    goos = "linux",
+    goarch = "arm64",
 )

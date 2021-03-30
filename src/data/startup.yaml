@@ -86,7 +86,7 @@ write_files:
     ExecStart=/bin/bash /tmp/startup.sh
     StandardOutput=tty
     StandardError=tty
-    TTYPath=/dev/ttyS2
+    TTYPath=/dev/ttyAMA0
 
 runcmd:
 - echo "Starting startup service..."

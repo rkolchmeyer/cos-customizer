@@ -34,4 +34,6 @@ go_binary(
     name = "provisioner",
     embed = [":provisioner_lib"],
     visibility = ["//visibility:public"],
+    goos = "linux",
+    goarch = "arm64",
 )

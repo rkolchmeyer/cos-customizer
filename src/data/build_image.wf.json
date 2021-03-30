@@ -11,6 +11,7 @@
   },
   "Sources": {
     "cloud-config": "/data/startup.yaml",
+    "arm-startup-script": "/data/arm.sh",
     "cidata.tar.gz_": "${cidata_img}"
   },
   "Steps": {
@@ -22,13 +23,19 @@
         }
       ]
     },
-    "create-cidata": {
+    "create-work-images": {
       "CreateImages": [
         {
           "Name": "cidata",
           "RawDisk": {
             "Source": "${SOURCESPATH}/cidata.tar.gz"
           }
+        },
+        {
+          "Name": "debian-vmx",
+          "SourceImage": "projects/debian-cloud/global/images/debian-10-buster-v20210316",
+          "licenses": ["projects/vm-options/global/licenses/enable-vmx"],
+          "IgnoreLicenseValidationIfForbidden": true
         }
       ]
     },
@@ -49,20 +56,26 @@
       "CreateInstances": [
         {
           "Name": "preload-vm",
-          "Disks": [{"Source": "boot-disk"}, {"Source": "cidata-disk"}],
+          "Disks": [
+            {"InitializeParams": {"SourceImage": "debian-vmx"}},
+            {"Source": "boot-disk", "deviceName": "guest-vm"},
+            {"Source": "cidata-disk", "deviceName": "cidata"}
+          ],
           "guestAccelerators": {{.Accelerators}},
           "scheduling": {
             "onHostMaintenance": "${host_maintenance}"
           },
           "Metadata": {
             "user-data": "${SOURCE:cloud-config}",
+            "startup-script": "${SOURCE:arm-startup-script}",
             "block-project-ssh-keys": "TRUE",
             "cos-update-strategy": "update_disabled"
           },
           "Scopes": [
             "https://www.googleapis.com/auth/devstorage.read_write",
             "https://www.googleapis.com/auth/cloud-platform"
-          ]
+          ],
+          "machineType": "n1-standard-8"
         }
       ]
     },
@@ -77,6 +90,16 @@
             "SuccessMatch": "BuildSucceeded:",
             "StatusMatch": "BuildStatus:"
           }
+        },
+        {
+          "Name": "preload-vm",
+          "Interval": "30s",
+          "SerialOutput": {
+            "Port": 2,
+            "FailureMatch": "HostFailed:",
+            "StatusMatch": "HostStatus:"
+          },
+          "Stopped": true
         }
       ]
     },
@@ -121,8 +144,8 @@
     }
   },
   "Dependencies": {
-    "create-cidata": ["copy-gcs"],
-    "setup": ["create-cidata"],
+    "create-work-images": ["copy-gcs"],
+    "setup": ["create-work-images"],
     "run": ["setup"],
     "wait-preload-finished": ["run"],
     "wait-for-resize": ["run"],

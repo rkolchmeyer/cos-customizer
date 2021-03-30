@@ -26,4 +26,6 @@ go_binary(
     name = "metadata_watcher",
     embed = [":metadata_watcher_lib"],
     visibility = ["//visibility:public"],
+    goos = "linux",
+    goarch = "arm64",
 )
